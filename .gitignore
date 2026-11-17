@@ -14,3 +14,4 @@ dist/
 /risky-business-data.json
 /risky-business.sqlite
 /test-data.sqlite
+.neon

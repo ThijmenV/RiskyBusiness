@@ -26,7 +26,7 @@ De browsertest vereist een geïnstalleerde Playwright Chromium (`npx playwright 
 
 ## Gratis online gebruiken
 
-De uitgewerkte route is **Netlify Free + Neon Free PostgreSQL**; Vercel valt af omdat de gratis mogelijkheden al gebruikt worden. Volg de [concrete account-, import- en koppelstappen](documentation/HOSTING.md). De vaste publieke URL ontstaat pas na deze externe stappen; er is nog geen publieke deployment uitgevoerd.
+De uitgewerkte route is **Netlify Free + Neon Free PostgreSQL**; Vercel valt af omdat de gratis mogelijkheden al gebruikt worden. Volg de [concrete account-, import- en koppelstappen](documentation/HOSTING.md). Neon is inmiddels gekoppeld en de gekozen spelersdata staat daar gecontroleerd geïmporteerd. De Netlify-runtimewaarden zijn privé voorbereid. De vaste publieke URL ontstaat pas na de Netlify-koppeling/deploy; er is nog geen publieke deployment uitgevoerd.
 
 ```sh
 npm run build:netlify

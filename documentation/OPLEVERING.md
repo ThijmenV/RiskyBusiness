@@ -64,3 +64,12 @@ Netlify: `dist/site` bevat alleen statische publieke bestanden en `dist/function
 Validatie in deze ronde: 15 tests inclusief PostgreSQL geslaagd, de uitgebreide Chromium-test inclusief HISTORY geslaagd, deploy-build en ZIP-runtimecheck geslaagd, productie-audit 0 bekende kwetsbaarheden. De gekozen dataset blijft zes spelers, 26 troepen en twee logregels. Een nieuwe volledige privébackup staat in `data/selected-full-backup-hosting-2026-11-17.json`.
 
 Netlify's website is hier door het netwerkbeleid geblokkeerd, dus actuele exacte gratis credits zijn niet bevestigd. De officiële Netlify-bundler is via npm gelezen en getest. Cloudflare Workers Free CPU-limieten zijn via de officiële GitHub-docs gecontroleerd; overstappen zou extra auth/runtimewerk vragen. Gratis diensten houden quota en kunnen bij overschrijding pauzeren; geen onbeperkte beschikbaarheid claimen.
+
+
+## Neon productie gekoppeld en geïmporteerd
+
+Neon CLI heeft het bestaande gratis project `ancient-mouse-08332993` gekoppeld. De lege database is via het ondersteunde WSS-transport over de cloudproxy bereikt, met TLS-certificaatcontrole. Migratie/import is eerst in een tijdelijk geïsoleerd schema geverifieerd (inclusief sessies tussen appinstanties), waarna dat schema is verwijderd. Vervolgens zijn schema en alle gekozen gegevens in de normale productiebranch gezet: 2 accounts, 3 groepen, 3 lidmaatschappen, 3 gamestates, 0 historische versies bij de initiële import. Alle payloads en wachtwoordhashes zijn inhoudelijk vergeleken met de bron. De oorspronkelijke groep heeft nog steeds 6 spelers, 26 troepen en 2 logregels.
+
+De app is daarna tegen Neon geverifieerd: health `storage: postgres`, dashboard bereikbaar, anonieme gametoegang geweigerd en privébestanden afgeschermd. Hiervoor zijn geen testaccounts of spelwijzigingen in de gewone productiegegevens achtergelaten. Een volledige Neon-backup staat privé in `data/neon-production-backup-2026-11-17.json`.
+
+Verbindingsstrings en stabiele sessiesleutel staan uitsluitend in genegeerde bestanden met modus 0600. `.env.netlify` bevat precies de drie runtimevelden voor de volgende stap. Netlify-accounttoegang is nog niet beschikbaar, dus er is nog geen publieke website of ingestelde Netlify-runtime. De volgende stap is beveiligde Netlify-toegang of handmatige import van die runtimevariabelen in het reeds gekozen Netlify-project.

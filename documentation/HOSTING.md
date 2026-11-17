@@ -1,5 +1,7 @@
 # Gratis hosting met een vast webadres
 
+**Actuele status:** Neon-project `ancient-mouse-08332993` is gekoppeld en de productiebranch is inmiddels veilig gevuld. Schema, import en appverbinding zijn gecontroleerd. De eenmalige dataoverzet hieronder is voor deze database dus al afgerond; voer die niet opnieuw uit. De publieke Netlify-deploy en het instellen van de productievariabelen staan nog open omdat Netlify-accounttoegang ontbreekt.
+
 **Voorkeursroute: Netlify Free + Neon Free PostgreSQL.** De gebruiker heeft geen gratis Vercelruimte meer beschikbaar en gratis is een vereiste. De statische pagina en kaartbestanden staan op Netlify's CDN; de API en afgeschermde spelpagina draaien als Node-function. Accounts, sessies, spelstate en herstelhistorie staan samen in Neon. De code en het echte Netlify-ZIP zijn lokaal getest, inclusief koude function-instanties en sessiebehoud.
 
 Het resultaat na koppeling is een vaste `https://jouw-project.netlify.app`-URL. Er hoeft geen lokale computer aan te blijven en geen Render-service handmatig wakker gemaakt te worden. API/database kunnen een korte koude start hebben. Gratis quota blijven van toepassing: bij het bereiken van planlimieten kan een dienst pauzeren. Dit is geen onbeperkte uptimegarantie. Gebruik expliciet Free, geen proefabonnement met latere betaling of automatische betaalde uitbreiding.
@@ -118,9 +120,15 @@ Bronnen: [Netlify pricing](https://www.netlify.com/pricing/), [Netlify Functions
 
 De Netlify-webpagina's zijn hier door het netwerkbeleid geblokkeerd (HTTP 403). De officiële bundler is wel rechtstreeks via npm gelezen, gebruikt en getest. Exacte actuele Netlify-kredieten worden daarom niet als geverifieerd gepresenteerd: controleer het Free-plan bij aanmelden. Neon en Render zijn eerder op 17 november 2026 officieel gecontroleerd; de Workers-prijzen zijn via de officiële Cloudflare GitHub-bron gecontroleerd. Alle quota kunnen veranderen.
 
-## Huidige uitrolstatus
+## Huidige uitrolstatus (bijgewerkt na Neon-setup)
 
-Het productie-ZIP is gebouwd en lokaal als losse function-processen tegen PostgreSQL uitgevoerd. Statische bestanden bevatten geen speldata. Het ZIP bevat geen privédata, historische databases of Git-geschiedenis. De echte provideraccounts zijn niet gekoppeld, er zijn geen productiewaarden ontvangen en er is geen publieke deployment gedaan. Alleen de lokale app is actief. De bovenstaande account- en koppelingstappen zijn dus nog nodig om het vaste publieke adres werkelijk te activeren.
+Het productie-ZIP is gebouwd en lokaal als losse function-processen tegen PostgreSQL uitgevoerd. Het ZIP bevat geen privédata, historische databases of Git-geschiedenis. Neon is nu daadwerkelijk gekoppeld op het gratis project van de gebruiker: de lege productiebranch is gecontroleerd, de volledige import is eerst in een tijdelijk geïsoleerd schema getest en dat testschema is verwijderd. Daarna is de gewone database gevuld en inhoudelijk vergeleken met de privébron: twee accounts, drie groepen, drie gamestates, zes oorspronkelijke spelers, 26 troepen en twee logregels. De bestaande wachtwoordhashes zijn intact. De app is tegen Neon gecontroleerd op health, dashboard en weigering van anonieme gametoegang.
+
+In deze proxy-only cloudomgeving werkt rechtstreeks TCP/DNS niet; de beheertaken zijn uitgevoerd over Neons ondersteunde WebSocket-transport met behoud van TLS-controle. De lokale beheerbridge en dependencies staan privé buiten de repository in `/workspace/.risky-business/neon-transport/`; dit verandert de normale Netlify-appdriver niet.
+
+Private bestanden (niet committen): `.env.local` bevat de gepoolde/directe databaseverbinding en de app-sessiesleutel; `.env.netlify` bevat alleen `NODE_ENV`, `DATABASE_URL` en `SESSION_SECRET` voor de Netlify-runtime. `data/neon-production-backup-2026-11-17.json` is een volledige privébackup van de echte Neon-database. De verbindingen hebben expliciete `sslmode=verify-full`.
+
+Netlify-accounttoegang ontbreekt nog. Er is daarom geen externe Netlify-site aangemaakt of gedeployd en geen publiek gameadres bevestigd. Met beveiligde Netlify-accounttoegang kunnen de klaarstaande runtimevariabelen en het geteste pakket rechtstreeks worden ingesteld/uitgerold. Alternatief: importeer het privébestand `.env.netlify` in de Netlify-projectinstellingen en deploy de GitHub-branch. Deel het bestand niet openbaar.
 
 
 ## Publicatierelease
