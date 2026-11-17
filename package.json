@@ -4,15 +4,37 @@
   "description": "A multi-user online version of Risky Business with accounts, groups, and shared gameplay.",
   "main": "server.js",
   "scripts": {
-    "start": "start.cmd",
-    "test": "node --test"
+    "start": "node server.js",
+    "test": "node --test",
+    "migrate:legacy": "node scripts/migrate-legacy.js",
+    "import:postgres": "node scripts/import-postgres.js",
+    "test:e2e": "playwright test",
+    "backup": "node scripts/backup.js",
+    "recover:original": "node scripts/recover-jsonbin.js",
+    "import:recovered": "node scripts/import-recovered.js",
+    "build:netlify": "node scripts/build-netlify.js",
+    "db:migrate": "node scripts/migrate-database.js",
+    "check:netlify": "node scripts/check-netlify-package.js",
+    "check:hosting": "node scripts/check-hosting.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-pg-simple": "^10.0.0",
+    "d3": "^7.9.0",
     "express": "^4.21.2",
-    "express-session": "^1.4.0",
-    "pg": "^8.2.0"
+    "express-rate-limit": "^8.2.1",
+    "express-session": "^1.19.0",
+    "pg": "^8.16.3",
+    "serverless-http": "^4.0.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@netlify/zip-it-and-ship-it": "^16.6.0",
+    "@playwright/test": "^1.65.1",
     "supertest": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }

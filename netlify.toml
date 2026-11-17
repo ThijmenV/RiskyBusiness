@@ -1,0 +1,38 @@
+[build]
+  command = "npm run build:netlify"
+  publish = "dist/site"
+  functions = "dist/functions"
+
+[build.environment]
+  NODE_VERSION = "24"
+  # Build dependencies include the official function bundler.
+  NPM_FLAGS = "--include=dev"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/groups/*"
+  to = "/.netlify/functions/app/groups/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/game.html"
+  to = "/"
+  status = 302
+
+[[redirects]]
+  from = "/Risky_business-Thoms-Laptop.html"
+  to = "/"
+  status = 302
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
+    X-Frame-Options = "DENY"

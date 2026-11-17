@@ -1,0 +1,22 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const os=require('node:os');const path=require('node:path');const request=require('supertest');
+const {createStorage,HISTORY_LIMIT}=require('../src/storage');const {createApp}=require('../src/app');
+test('automatic history is bounded, survives restart, enforces group access and restores with compare-and-swap',async t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'risky-history-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const file=path.join(dir,'app.json');const storage=createStorage({databasePath:file,databaseUrl:''});
+ const app=createApp({storage});const user=request.agent(app),other=request.agent(app);
+ for(const [a,name] of [[user,'Owner'],[other,'Other']]) assert.equal((await a.post('/api/auth/signup').send({username:name,email:name+'@example.invalid',password:'history-test123'})).status,201);
+ const group=(await user.post('/api/groups').send({name:'History'})).body.group;
+ for(let version=0;version<25;version++) await storage.saveGameState(group.id,{troops:{528:{1:version}},kissLog:[]},version);
+ const history=await storage.getGameHistory(group.id);assert.equal(history.length,HISTORY_LIMIT);assert.equal(history[0].version,24);assert.equal(history.at(-1).version,5);
+ assert.equal(await storage.getHistoricalGame(group.id,0),null);
+ const restarted=createStorage({databasePath:file,databaseUrl:''});assert.deepEqual(await restarted.getGameHistory(group.id),history);
+ const url=`/api/groups/${group.id}/history`;
+ assert.equal((await other.get(url)).status,403);assert.equal((await request(app).get(url)).status,401);
+ assert.equal((await user.get(url)).body.history.length,HISTORY_LIMIT);
+ assert.equal((await user.post(url+'/24/restore').send({})).status,428);
+ assert.equal((await user.post(url+'/24/restore').set('If-Match','24').send({})).status,409);
+ assert.equal((await user.post(url+'/0/restore').set('If-Match','25').send({})).status,404);
+ const restored=await user.post(url+'/24/restore').set('If-Match','25').send({});
+ assert.equal(restored.status,200);assert.equal(restored.body.version,26);assert.equal(restored.body.game.troops['528']['1'],23);
+ assert.equal((await storage.getHistoricalGame(group.id,25)).game.troops['528']['1'],24);
+});

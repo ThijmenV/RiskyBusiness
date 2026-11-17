@@ -1,0 +1,16 @@
+node_modules/
+data/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+playwright-report/
+test-results/
+dist/
+.netlify/
+
+# Private original sources are retained locally, not published with the code.
+/risky-business-data.json
+/risky-business.sqlite
+/test-data.sqlite

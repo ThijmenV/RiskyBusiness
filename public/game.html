@@ -1,82 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Risky Business | Play</title>
-    <style>
-      body { margin: 0; font-family: Arial, sans-serif; background: #020617; color: #f8fafc; }
-      .shell { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
-      .sidebar { background: #111827; padding: 20px; border-right: 1px solid #334155; }
-      .main { padding: 20px; }
-      .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-      button { padding: 10px 12px; border-radius: 8px; border: 1px solid #f59e0b; background: #f59e0b; color: #111827; cursor: pointer; }
-      .player { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #334155; }
-      .map { height: 70vh; border-radius: 16px; background: linear-gradient(135deg,#0f766e,#0f172a); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1px solid #334155; }
-      .muted { color: #94a3b8; }
-    </style>
-  </head>
-  <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="card">
-          <h2>Game Lobby</h2>
-          <p id="group-name" class="muted">Loading…</p>
-          <p id="group-code" class="muted">Invite code: …</p>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Risky Business</title>
+<link rel="stylesheet" href="/css/game.css">
+</head>
+<body>
+<div id="sync-error" role="alert" hidden><span id="sync-message"></span>
+<button onclick="downloadBackup()">Export local changes</button>
+<button onclick="if(confirm('Reload and discard unsaved local changes? Export first to keep them.')) { dirty=false; location.reload(); }">Reload server state</button></div>
+
+<dialog id="history-dialog">
+<h2>Recent saved versions</h2><p>The last 20 previous versions are kept automatically. Restoring saves a new version.</p>
+<div id="history-list"></div><button onclick="document.getElementById('history-dialog').close()">Close</button>
+</dialog>
+<header>
+  <h1>RISKY BUSINESS</h1>
+  <p>WORLD DOMINATION</p>
+  <div class="header-actions">
+    <span class="save-status" id="save-status"></span>
+    <button class="hbtn" onclick="openStats()" style="border-color:#e9c46a;color:#e9c46a;">📊 STATS</button>
+    <a class="hbtn" href="/">HOME</a>
+    <button class="hbtn" onclick="openHistory()">HISTORY</button>
+    <button class="hbtn" onclick="downloadBackup()">BACKUP</button>
+    <label class="hbtn">RESTORE<input type="file" accept="application/json" hidden onchange="importBackup(this.files[0]);this.value='' "></label>
+    <button class="hbtn" onclick="saveData()">SAVE</button>
+    <button class="hbtn danger" onclick="resetData()">RESET</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">Commanders</div>
+      <div class="players-list" id="players-list"></div>
+    </div>
+    <div>
+      <div class="section-title">Territory</div>
+      <div class="territory-panel">
+        <div class="no-selection" id="no-selection">Click a territory on the map</div>
+        <div id="territory-detail" style="display:none;">
+          <div class="territory-name" id="territory-name"></div>
+          <div id="troop-entries"></div>
         </div>
-        <div class="card">
-          <h3>Players</h3>
-          <div id="players"></div>
-        </div>
-        <div class="card">
-          <a href="/" style="color:#f59e0b;">Back to dashboard</a>
-        </div>
-      </aside>
-      <main class="main">
-        <div class="card">
-          <h1>RISKY BUSINESS</h1>
-          <p class="muted">This is the shared gameplay view for your group. You can now enter the game room and interact with the map.</p>
-        </div>
-        <div class="map">
-          <div style="text-align:center;">
-            <div style="font-size:2rem;font-weight:700;">World Map</div>
-            <div class="muted" style="margin-top:8px;">The full map and turn-based gameplay will be connected here next.</div>
-            <button id="play-btn" style="margin-top:16px;">Start game</button>
-          </div>
-        </div>
-      </main>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Scoreboard</div>
+      <div id="scoreboard" style="display:flex; flex-direction:column; gap:3px;"></div>
+    </div>
+  </div>
+
+  <div class="map-area">
+    <div id="map-wrapper">
+      <svg id="world-map" viewBox="0 0 2000 1001" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
 
-    <script>
-      const groupId = window.location.pathname.split('/')[2];
-      const groupNameEl = document.getElementById('group-name');
-      const groupCodeEl = document.getElementById('group-code');
-      const playersEl = document.getElementById('players');
-      const playBtn = document.getElementById('play-btn');
+    <div class="zoom-controls">
+      <button class="zbtn" onclick="doZoom(1.3)" title="Zoom in">+</button>
+      <button class="zbtn" onclick="doZoom(0.77)" title="Zoom out">−</button>
+      <button class="zbtn fit" onclick="resetZoom()" title="Reset">FIT</button>
+    </div>
 
-      async function loadGroup() {
-        const response = await fetch(`/api/groups/${groupId}`);
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Unable to load group');
-        groupNameEl.textContent = data.group.name;
-        groupCodeEl.textContent = `Invite code: ${data.group.code}`;
-        playersEl.innerHTML = '';
-        data.group.members.forEach((member) => {
-          const row = document.createElement('div');
-          row.className = 'player';
-          row.innerHTML = `<span>${member.username}</span><span class="muted">${member.role}</span>`;
-          playersEl.appendChild(row);
-        });
-      }
+    <div class="legend">
+      <div class="legend-title">PLAYERS</div>
+      <div id="legend-rows"></div>
+    </div>
+  </div>
+</div>
 
-      playBtn.addEventListener('click', () => {
-        alert('Game started for this group. The shared map experience is now available from this room.');
-      });
+<div class="tooltip" id="tooltip"></div>
 
-      loadGroup().catch((error) => {
-        console.error(error);
-        groupNameEl.textContent = 'Unable to load group';
-      });
-    </script>
-  </body>
+<!-- MOBILE BOTTOM SHEET -->
+<div id="sheet-backdrop" onclick="closeSheet()"></div>
+<button id="mobile-open-btn" onclick="openSheet()">☰ MENU</button>
+<div id="mobile-country-banner">Tap a country</div>
+
+<div id="mobile-panel">
+  <div class="sheet-handle"></div>
+  <div class="sheet-tabs">
+    <button class="sheet-tab active" onclick="switchTab('territory')">Territory</button>
+    <button class="sheet-tab" onclick="switchTab('players')">Players</button>
+    <button class="sheet-tab" onclick="switchTab('scores')">Scores</button>
+  </div>
+  <div class="sheet-content">
+    <div class="sheet-pane active" id="mpane-territory">
+      <div class="no-selection" id="m-no-selection">Tap a territory on the map</div>
+      <div id="m-territory-detail" style="display:none;">
+        <div class="territory-name" id="m-territory-name"></div>
+        <div id="m-troop-entries"></div>
+      </div>
+    </div>
+    <div class="sheet-pane" id="mpane-players">
+      <div class="players-list" id="m-players-list"></div>
+    </div>
+    <div class="sheet-pane" id="mpane-scores">
+      <div id="m-scoreboard" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS OVERLAY -->
+<div id="stats-overlay">
+  <div class="stats-header">
+    <h2>💋 KISS STATS</h2>
+    <button class="hbtn" onclick="closeStats()">✕ CLOSE</button>
+  </div>
+  <div class="stats-tabs">
+    <button class="stats-tab active" onclick="switchStatsTab('log')">📋 Log</button>
+    <button class="stats-tab" onclick="switchStatsTab('timeline')">📅 Timeline</button>
+    <button class="stats-tab" onclick="switchStatsTab('charts')">📊 Charts</button>
+    <button class="stats-tab" onclick="switchStatsTab('leaderboard')">🏆 Leaderboard</button>
+  </div>
+  <div class="stats-body">
+
+    <!-- LOG TAB -->
+    <div class="stats-pane active" id="spane-log">
+      <div class="add-entry-form">
+        <div class="form-field full">
+          <div class="form-label">Name</div>
+          <input class="form-input" id="entry-name" type="text" placeholder="Their name…">
+        </div>
+        <div class="form-field">
+          <div class="form-label">Age</div>
+          <input class="form-input" id="entry-age" type="number" min="1" max="120" placeholder="Age">
+        </div>
+        <div class="form-field">
+          <div class="form-label">Date</div>
+          <input class="form-input" id="entry-date" type="date">
+        </div>
+        <div class="form-field">
+          <div class="form-label">Who kissed them</div>
+          <select class="form-select" id="entry-player"></select>
+        </div>
+        <div class="form-field">
+          <div class="form-label">Country</div>
+          <select class="form-select" id="entry-country"></select>
+        </div>
+        <div style="grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:8px;padding:6px 0;">
+          <input type="checkbox" id="entry-tiebreaker" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+          <label for="entry-tiebreaker" style="font-family:'Cinzel',serif;font-size:0.62rem;letter-spacing:0.1em;color:var(--text-dim);cursor:pointer;">🔥 Count towards tiebreaker</label>
+        </div>
+        <button class="add-entry-btn" id="entry-submit-btn" onclick="submitEntry()">+ ADD ENTRY</button>
+      </div>
+
+      <div class="timeline" id="log-list"></div>
+    </div>
+
+    <!-- TIMELINE TAB -->
+    <div class="stats-pane" id="spane-timeline">
+      <div class="timeline" id="timeline-list"></div>
+    </div>
+
+    <!-- CHARTS TAB -->
+    <div class="stats-pane" id="spane-charts">
+      <div class="stat-cards" id="stat-cards"></div>
+      <div class="chart-section">
+        <div class="chart-title">Kisses per person</div>
+        <div class="bar-chart" id="chart-player"></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-title">Kisses per country</div>
+        <div class="bar-chart" id="chart-country"></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-title">Age distribution</div>
+        <div class="bar-chart" id="chart-age"></div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div class="stats-pane" id="spane-leaderboard">
+      <div id="leaderboard-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/game-rules.js"></script>
+<script src="/js/game.js"></script>
+</body>
 </html>

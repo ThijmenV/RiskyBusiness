@@ -1,0 +1,35 @@
+const test=require('node:test');const assert=require('node:assert/strict');const request=require('supertest');
+const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
+const {createStorage}=require('../src/storage');const {createApp}=require('../src/app');
+test('versioned multiplayer, backup restore, validation, authorization and static assets',async t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'risky-api-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const storage=createStorage({databasePath:path.join(dir,'data.json'),databaseUrl:''});
+  const app=createApp({storage});const a=request.agent(app),b=request.agent(app),outsider=request.agent(app);
+  async function signup(agent,name){const r=await agent.post('/api/auth/signup').send({username:name,email:name+'@example.invalid',password:'secret123'});assert.equal(r.status,201);return r.body.user;}
+  const user=await signup(a,'Alice');await signup(b,'Bob');await signup(outsider,'Eve');
+  const created=await a.post('/api/groups').send({name:'North'});const gid=created.body.group.id;
+  assert.equal((await b.post('/api/groups/join').send({code:created.body.group.code})).status,200);
+  assert.equal((await outsider.get(`/api/groups/${gid}/backup`)).status,403);
+  assert.equal((await request(app).get(`/api/groups/${gid}/game`)).status,401);
+  const game={troops:{528:{[user.id]:2}},tiebreakers:{},lastUpdated:{},kissLog:[],playerColors:{},selectedPlayer:user.id};
+  const url=`/api/groups/${gid}/game`;
+  assert.equal((await a.post(url).send(game)).status,428);
+  assert.equal((await a.post(url).set('If-Match','0').send(game)).body.version,1);
+  const stale=await b.post(url).set('If-Match','0').send({...game,troops:{}});assert.equal(stale.status,409);
+  const unchanged=await b.get(url);assert.deepEqual(unchanged.body.game,game);assert.equal(unchanged.body.version,1);
+  const bad=structuredClone(game);bad.troops['528'][user.id]=-1;
+  assert.equal((await a.post(url).set('If-Match','1').send(bad)).status,400);
+  assert.equal((await a.post(url).set('If-Match','1').send({...game,playerColors:{[user.id]:'red;bad'}})).status,400);
+  assert.equal((await a.post(url).set('If-Match','1').send([])).status,400);
+  const backup=await a.get(`/api/groups/${gid}/backup`);assert.equal(backup.status,200);assert.deepEqual(backup.body.game,game);assert.equal(JSON.stringify(backup.body).includes('password_hash'),false);
+  assert.equal((await a.post(url).set('If-Match','1').send({troops:{},kissLog:[]})).status,200);
+  assert.equal((await a.post(url).set('If-Match','2').send(backup.body.game)).status,200);
+  assert.deepEqual((await a.get(url)).body.game,game);
+  assert.equal((await a.post('/api/groups').set('Origin','https://evil.invalid').send({name:'Bad'})).status,403);
+  assert.equal((await a.post('/api/groups').send({name:{invalid:true}})).status,400);
+  assert.equal((await a.get('/api/no-such-route')).status,404);
+  for(const file of ['/js/game.js','/js/game-rules.js','/css/game.css','/vendor/countries-110m.json','/vendor/d3.min.js','/vendor/topojson-client.min.js']) assert.equal((await request(app).get(file)).status,200,file);
+  assert.equal((await request(app).get('/risky-business-data.json')).status,404);
+  assert.equal((await a.get(`/groups/${gid}/play`)).status,200);
+  assert.equal((await outsider.get(`/groups/${gid}/play`)).status,403);
+});

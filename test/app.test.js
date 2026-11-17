@@ -6,6 +6,7 @@ const os = require('node:os');
 const fs = require('node:fs');
 
 process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL = ''; // Never point this integration fixture at a production database.
 process.env.DB_PATH = path.join(os.tmpdir(), `risky-business-test-${process.pid}.json`);
 
 test.after(() => fs.rmSync(process.env.DB_PATH, { force: true }));

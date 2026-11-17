@@ -1,12 +1,17 @@
 services:
   - type: web
     name: risky-business
-    env: node
+    runtime: node
     plan: free
-    buildCommand: npm install
-    startCommand: node server.js
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 24
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
-        value: change-me-in-render
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false

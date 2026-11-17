@@ -1,24 +1,48 @@
 # Risky Business
 
-This project now has two deployment options:
+Een gedeeld wereldkaartspel met accounts, groepen, troepen, tiebreakers, logboek en statistieken. Node.js 24, Express en PostgreSQL (hosting) of JSON (lokale ontwikkeling). Geen frontend-build nodig.
 
-1. GitHub Pages for the static game UI
-2. A Node.js backend for accounts, groups, and shared game state
+## Lokaal starten
 
-## GitHub Pages
-
-The game page is available from the repository root as:
-- [Risky_business-Thoms-Laptop.html](Risky_business-Thoms-Laptop.html)
-
-## Full online app
-
-For the full multiplayer experience, deploy the Node backend to a hosting service such as Render, Railway, Fly.io, or Azure App Service.
-
-### Local run
-
-```powershell
-npm install
+```sh
+npm ci
 npm start
 ```
 
-Then open http://localhost:3000.
+Open de app op poort 3000. Een schone checkout start met lege lokale data; herstel een privébackup om het bestaande spel te gebruiken. De oorspronkelijke bronbestanden zijn niet meer onderdeel van de GitHub-code. `npm start` werkt op Linux, macOS en Windows. Met `PORT` kies je een andere poort. Optioneel: `node --env-file=.env server.js`; `.env.example` beschrijft de instellingen. Standaard is geen databaseaccount nodig. JSON-opslag staat in het genegeerde `data/app.json`; draai daarmee één serverproces tegelijk. Lokale sessies verlopen bij een serverherstart. Op productie gebruikt de app PostgreSQL voor zowel spelgegevens als sessies.
+
+**Definitieve speldata:** de gebruiker heeft de teruggevonden oorspronkelijke JSONBin-versie gekozen: zes spelers (Thom, Thijmen, Thijs, Aidan, Jorik, Chris), samen 26 troepen en twee logregels. Die staat lokaal in **Risky Business — Original** onder het bestaande account **ThomJochems**. De eerdere JSON- en SQLite-groepen zijn bewaard. De ruwe snapshot, normalisatierapportage en volledige actuele database staan privé in het genegeerde `data/` en zijn niet publiek of in Git opgeslagen.
+
+Een nieuwe checkout bevat daarom niet vanzelf de gekozen privédata. Herstel een volledige privébackup, of volg [migratie en herstel](documentation/DATA-EN-HERSTEL.md). `npm run migrate:legacy` alleen herstelt de twee repository-snapshots; het is geen vervanging voor de definitieve spelersbackup. De cloudomgeving heeft de herstelbestanden lokaal beschikbaar.
+
+## Controle
+
+```sh
+npm test
+npm run test:e2e
+```
+
+De browsertest vereist een geïnstalleerde Playwright Chromium (`npx playwright install chromium`) of `CHROMIUM_PATH` naar een bestaande Chromium. De testserver gebruikt een eigen tijdelijke dataset op poort 3100. De PostgreSQL-integratietest gebruikt `TEST_DATABASE_URL`; hij maakt twee tijdelijke schema's en ruimt die op. Zonder deze variabele wordt alleen die test expliciet overgeslagen. CI draait beide plus browsercontroles tegen PostgreSQL 17.
+
+## Gratis online gebruiken
+
+De uitgewerkte route is **Netlify Free + Neon Free PostgreSQL**; Vercel valt af omdat de gratis mogelijkheden al gebruikt worden. Volg de [concrete account-, import- en koppelstappen](documentation/HOSTING.md). De vaste publieke URL ontstaat pas na deze externe stappen; er is nog geen publieke deployment uitgevoerd.
+
+```sh
+npm run build:netlify
+# Optioneel: controleer het echte ZIP met een tijdelijke PostgreSQL-testdatabase.
+npm run check:netlify
+```
+
+De build maakt `dist/site` (CDN) en `dist/functions/app.zip` (API), zonder privédata. De ZIP-controle vereist `TEST_DATABASE_URL` en Python 3. Productie gebruikt alleen PostgreSQL; voer vóór een nieuwe schemaversie `npm run db:migrate` uit met een veilige databasebinding. HISTORY bewaart automatisch de laatste twintig vorige spelversies, inclusief bescherming bij gelijktijdig herstellen.
+
+## Structuur
+
+- `public/game.html`, `public/css`, `public/js`: één frontend; kaartlibraries worden lokaal uit npm-packages geserveerd.
+- `public/js/game-rules.js`: dezelfde deterministische scoreregels in browser en tests.
+- `src`: HTTP, accounts, groepsrechten, statevalidatie en JSON/PostgreSQL-opslag.
+- `scripts`: read-only bronherstel, gecontroleerde migratie/import en privébackups.
+- `test`, `e2e`: regressie-, database- en browsercontroles.
+- `documentation`: [oorspronkelijke werking](documentation/HUIDIGE-WERKING.md), [plan](documentation/PLAN-VAN-AANPAK.md), [hosting](documentation/HOSTING.md), [opleverstatus](documentation/OPLEVERING.md).
+
+Alle leden mogen het groepsspel beheren. Opslaan gebruikt versiecontrole: bij een conflict blijft de lokale state beschikbaar om te exporteren, waarna je bewust de serverversie kunt herladen. BACKUP downloadt de huidige groepsstate; RESTORE herstelt uitsluitend een back-up van dezelfde groep. RESET downloadt eerst een back-up en wist troepen, tiebreakers en log na bevestiging. Voor accounts en alle groepen samen gebruik je de beheerdersbackup uit de migratiehandleiding.
