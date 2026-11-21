@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/require-auth');
-const { asyncRoute,fail,text } = require('../http');
+const { asyncRoute,fail,text,requireGameVersion } = require('../http');
 const { validateGame } = require('../game/validate');
 function createGroupsRouter(storage) {
   const router=express.Router(); router.use(requireAuth);
@@ -29,8 +29,7 @@ function createGroupsRouter(storage) {
   }));
   router.get('/:id/game',asyncRoute(async(req,res)=>res.json(await storage.getGameSnapshot(req.group.id))));
   router.post('/:id/game',asyncRoute(async(req,res)=>{
-    const version=Number(req.get('If-Match'));
-    if(req.get('If-Match')===undefined || !Number.isSafeInteger(version) || version<0) fail(428,'A game version is required (If-Match)');
+    const version=requireGameVersion(req);
     const members=await storage.getGroupMembers(req.group.id);
     validateGame(req.body,members);
     const nextVersion=await storage.saveGameState(req.group.id,req.body,version);
@@ -39,8 +38,7 @@ function createGroupsRouter(storage) {
   router.get('/:id/history',asyncRoute(async(req,res)=>res.json({history:await storage.getGameHistory(req.group.id)})));
   router.post('/:id/history/:version/restore',asyncRoute(async(req,res)=>{
     if(!/^\d+$/.test(req.params.version) || !Number.isSafeInteger(Number(req.params.version))) fail(400,'Invalid history version');
-    const expected=Number(req.get('If-Match'));
-    if(req.get('If-Match')===undefined || !Number.isSafeInteger(expected) || expected<0) fail(428,'A current game version is required');
+    const expected=requireGameVersion(req);
     const past=await storage.getHistoricalGame(req.group.id,Number(req.params.version));
     if(!past) fail(404,'Historical version not found');
     validateGame(past.game,await storage.getGroupMembers(req.group.id));

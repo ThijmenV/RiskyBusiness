@@ -79,7 +79,7 @@ async function saveData() {
       dirty=false;
       const body=JSON.stringify(snapshot());
       flashStatus('Saving…',false);
-      const response=await fetch(`/api/groups/${GROUP_ID}/game`,{method:'POST',headers:{'Content-Type':'application/json','If-Match':String(gameVersion)},body});
+      const response=await fetch(`/api/groups/${GROUP_ID}/game`,{method:'POST',headers:{'Content-Type':'application/json','X-Game-Version':String(gameVersion)},body});
       const result=await response.json();
       if(!response.ok) throw new Error(result.error || `Save failed (${response.status})`);
       gameVersion=result.version;
@@ -109,7 +109,7 @@ async function importBackup(file) {
     if(!confirm('Replace this group game with the backup? A backup of the current state will be downloaded first.')) return;
     downloadBackup();
     // Server validation is authoritative. Validate before replacing the visible local state.
-    const response=await fetch(`/api/groups/${GROUP_ID}/game`,{method:'POST',headers:{'Content-Type':'application/json','If-Match':String(gameVersion)},body:JSON.stringify(data.game)});
+    const response=await fetch(`/api/groups/${GROUP_ID}/game`,{method:'POST',headers:{'Content-Type':'application/json','X-Game-Version':String(gameVersion)},body:JSON.stringify(data.game)});
     const result=await response.json();
     if(!response.ok) throw new Error(result.error || 'Import failed');
     gameVersion=result.version; applySnapshot(data.game); renderAll(); renderMobileAll(); updateMapColors(); renderStats();
@@ -1133,7 +1133,7 @@ async function restoreHistory(version) {
   if(!confirm('Restore this earlier version? Your current version is backed up first.')) return;
   downloadBackup();
   try {
-    const response=await fetch(`/api/groups/${GROUP_ID}/history/${version}/restore`,{method:'POST',headers:{'Content-Type':'application/json','If-Match':String(historyBaseVersion)},body:'{}'});
+    const response=await fetch(`/api/groups/${GROUP_ID}/history/${version}/restore`,{method:'POST',headers:{'Content-Type':'application/json','X-Game-Version':String(historyBaseVersion)},body:'{}'});
     const result=await response.json();if(!response.ok) throw new Error(result.error || 'Restore failed');
     gameVersion=result.version;applySnapshot(result.game);renderAll();renderMobileAll();updateMapColors();renderStats();
     document.getElementById('history-dialog').close();flashStatus('Version restored ✓',true);

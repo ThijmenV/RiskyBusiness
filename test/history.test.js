@@ -14,9 +14,9 @@ test('automatic history is bounded, survives restart, enforces group access and 
  assert.equal((await other.get(url)).status,403);assert.equal((await request(app).get(url)).status,401);
  assert.equal((await user.get(url)).body.history.length,HISTORY_LIMIT);
  assert.equal((await user.post(url+'/24/restore').send({})).status,428);
- assert.equal((await user.post(url+'/24/restore').set('If-Match','24').send({})).status,409);
- assert.equal((await user.post(url+'/0/restore').set('If-Match','25').send({})).status,404);
- const restored=await user.post(url+'/24/restore').set('If-Match','25').send({});
+ assert.equal((await user.post(url+'/24/restore').set('X-Game-Version','24').send({})).status,409);
+ assert.equal((await user.post(url+'/0/restore').set('X-Game-Version','25').send({})).status,404);
+ const restored=await user.post(url+'/24/restore').set('X-Game-Version','25').send({});
  assert.equal(restored.status,200);assert.equal(restored.body.version,26);assert.equal(restored.body.game.troops['528']['1'],23);
  assert.equal((await storage.getHistoricalGame(group.id,25)).game.troops['528']['1'],24);
 });

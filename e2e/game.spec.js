@@ -59,7 +59,7 @@ test('desktop and mobile game, log edits, persistence, safe rendering and confli
   const {players}=require('../scripts/recover-jsonbin').historicalSettings();
   const url=new URL(page.url()).pathname.split('/')[2];
   const before=await (await page.request.get(`/api/groups/${url}/game`)).json();
-  const setRoster=await page.request.post(`/api/groups/${url}/game`,{headers:{'If-Match':String(before.version)},data:{...before.game,players}});
+  const setRoster=await page.request.post(`/api/groups/${url}/game`,{headers:{'X-Game-Version':String(before.version)},data:{...before.game,players}});
   expect(setRoster.status()).toBe(200);
   await page.setViewportSize({width:1280,height:900});
   await page.reload();await expect(page.locator('body')).not.toHaveClass(/loading/);
