@@ -12,7 +12,7 @@ async function checkPackage(databaseUrl=process.env.TEST_DATABASE_URL) {
   await admin.query(`CREATE SCHEMA ${schema}`);const url=new URL(databaseUrl);url.searchParams.set('options','-c search_path='+schema);
   storage=createStorage({databaseUrl:url.toString(),schemaMode:'migrate'});await storage.ensureReady();
   function invoke(route,method='GET',body,cookie) {
-   const event={path:'/.netlify/functions/app'+route,httpMethod:method,headers:{host:'risky.example','x-forwarded-proto':'https','content-type':'application/json',...(cookie?{cookie}:{})},body:body?JSON.stringify(body):null,isBase64Encoded:false,queryStringParameters:{},requestContext:{identity:{sourceIp:'127.0.0.1'}}};
+   const event={path:'/.netlify/functions/app'+route,httpMethod:method,headers:{host:'risky.example','x-forwarded-proto':'https','x-nf-client-connection-ip':'203.0.113.10','content-type':'application/json',...(cookie?{cookie}:{})},body:body?JSON.stringify(body):null,isBase64Encoded:false,queryStringParameters:{}};
    const code="const fs=require('node:fs');const {handler}=require(process.env.LAMBDA_TASK_ROOT+'/app.js');handler(JSON.parse(fs.readFileSync(0,'utf8')),{}).then(r=>{console.log(JSON.stringify(r));process.exit(0)}).catch(()=>process.exit(1));";
    const result=spawnSync(process.execPath,['-e',code],{cwd:temp,env:{...process.env,NODE_ENV:'production',NETLIFY:'true',CONTEXT:'production',LAMBDA_TASK_ROOT:temp,DATABASE_URL:url.toString(),SESSION_SECRET:'disposable-package-test-only-'.repeat(2)},input:JSON.stringify(event),encoding:'utf8',timeout:20000});
    assert.equal(result.status,0,'Packaged function execution failed');return JSON.parse(result.stdout.trim());

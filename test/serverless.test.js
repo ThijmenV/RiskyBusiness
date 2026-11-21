@@ -14,3 +14,17 @@ test('Netlify handler supports original and rewritten paths, errors and cookies'
  assert.equal((await handler(event('/api/health'),{})).statusCode,503);storage.checkHealth=original;
  assert.equal((await handler(event('/api/not-found'),{})).statusCode,404);
 });
+test('real Netlify events without API Gateway context validate signup instead of failing rate limiting',async t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'risky-netlify-event-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+ const storage=createStorage({databasePath:path.join(dir,'app.json'),databaseUrl:''});const handler=createHandler(createApp({storage}));
+ const event={path:'/api/auth/signup',httpMethod:'POST',headers:{host:'local.example','content-type':'application/json','x-nf-client-connection-ip':'203.0.113.10'},body:'{}',isBase64Encoded:false};
+ assert.equal((await handler(event,{})).statusCode,400);
+ const signup=await handler({...event,body:JSON.stringify({username:'Real Netlify event',email:'netlify-event@example.invalid',password:'netlify-event-test123'})},{});
+ assert.equal(signup.statusCode,201);
+});
+test('Netlify client IP takes precedence over spoofed forwarded headers, including IPv6',async()=>{
+ const express=require('express');const app=express();app.set('trust proxy',1);app.get('/ip',(req,res)=>res.json({ip:req.ip}));const handler=createHandler(app);
+ const event={path:'/ip',httpMethod:'GET',headers:{'X-Nf-Client-Connection-Ip':'2001:db8::1','X-Forwarded-For':'198.51.100.99'},body:''};
+ const response=await handler(event,{});assert.equal(JSON.parse(response.body).ip,'2001:db8::1');
+ const unknown=await handler({...event,headers:{'x-forwarded-for':'198.51.100.99'}},{});assert.equal(JSON.parse(unknown.body).ip,'0.0.0.0');
+});
