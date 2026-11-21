@@ -2,6 +2,8 @@
 
 Doel: dezelfde bruikbare game, eenvoudiger te onderhouden en gratis te hosten voor een kleine vriendengroep. Geen frameworkherschrijving of nieuwe spelregels nodig.
 
+Dit document bewaart het oorspronkelijke plan. De definitieve hostingkeuze is later **Netlify Free + Neon Free** geworden; de publieke uitrol is afgerond op 21 november 2026. Zie [opleverstatus](OPLEVERING.md) en [beheerhandleiding](HOSTING.md) voor de actuele inrichting.
+
 ## Uitvoeringsvolgorde en acceptatie
 
 1. **Vastleggen**: bestaande werking en datasets inventariseren in HUIDIGE-WERKING.md. Geen echte data in screenshots, logs of documentatie.
@@ -22,10 +24,10 @@ De wereldkaart, regels, log en groepsmodel blijven leidend. Geografische correct
 Tests voor score-/tie-/continentregels, entrybewerkingen, legacywachtwoorden, verliesvrije migratie, corrupte opslag, authenticatie/autorisatie, statevalidatie, gelijktijdige saves, backups en productieconfiguratie. Handmatige controle van kaart en mobiele bediening waar een browser beschikbaar is. Werkelijke resultaten en openstaande externe stappen komen in OPLEVERING.md; een onuitgevoerde productie-deploy wordt niet als voltooid gepresenteerd.
 
 ## Aanpassing na gebruikerscontrole
-+
-+De gebruiker verwacht minimaal drie spelers. Daarom uitgebreid naar alle beschikbare Git-versies en de oorspronkelijke JSONBin-opslag. Zes vaste spelers gevonden in `74c626c`. Herstel van deze bron heeft voorrang op het kiezen tussen de twee onvolledige accountdatabases. Hiervoor zijn read-only herstel en een verliesvrije import in een aparte groep toegevoegd. Een historisch spelersrooster is onderdeel van de game-state en staat los van inlogaccounts: geen verzonnen e-mailadressen of wachtwoorden. Groepsleden kunnen, zoals in het oorspronkelijke spel, samen alle spelers beheren. De gebruiker kiest het eigenaaraccount voor de herstelde groep expliciet. De oude API-key komt nooit in de nieuwe frontend.
+
+De gebruiker verwacht minimaal drie spelers. Daarom uitgebreid naar alle beschikbare Git-versies en de oorspronkelijke JSONBin-opslag. Zes vaste spelers gevonden in `74c626c`. Herstel van deze bron heeft voorrang op het kiezen tussen de twee onvolledige accountdatabases. Hiervoor zijn read-only herstel en een verliesvrije import in een aparte groep toegevoegd. Een historisch spelersrooster is onderdeel van de game-state en staat los van inlogaccounts: geen verzonnen e-mailadressen of wachtwoorden. Groepsleden kunnen, zoals in het oorspronkelijke spel, samen alle spelers beheren. De gebruiker kiest het eigenaaraccount voor de herstelde groep expliciet. De oude API-key komt nooit in de nieuwe frontend.
 
 
 ## Afgerond herstel na nieuwe publicatie
 
-JSONBin is read-only teruggelezen en de gebruiker heeft deze oorspronkelijke zes-spelersdataset expliciet gekozen. De aparte groep is lokaal actief; de twee eerdere groepen blijven bewaard. De historische landcodes zijn met expliciete conflictcontrole genormaliseerd; ongewijzigde raw-data blijft privé. Ook import van alle drie groepen naar echte lokale PostgreSQL, API-save/backup/herstart op een wegwerpkopie en de volledige regressiesuite zijn geslaagd. Externe hosting is niet gepubliceerd; daarvoor blijven providerkeuze en veilige configuratie nodig.
+JSONBin is read-only teruggelezen en de gebruiker heeft deze oorspronkelijke zes-spelersdataset expliciet gekozen. De aparte groep is lokaal actief; de twee eerdere groepen blijven bewaard. De historische landcodes zijn met expliciete conflictcontrole genormaliseerd; ongewijzigde raw-data blijft privé. Ook import van alle drie groepen naar echte lokale PostgreSQL, API-save/backup/herstart op een wegwerpkopie en de volledige regressiesuite zijn geslaagd. Externe hosting stond op dat moment nog open. Inmiddels zijn Neon-import en publieke Netlify-uitrol uitgevoerd en functioneel getest; de gekozen speldata is behouden. GitHub-pushes vereisen voorlopig nog een afzonderlijke CLI-deploy.

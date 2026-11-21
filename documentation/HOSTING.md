@@ -1,138 +1,100 @@
-# Gratis hosting met een vast webadres
+# Gratis hosting en beheer
 
-**Actuele status:** Neon-project `ancient-mouse-08332993` is gekoppeld en de productiebranch is inmiddels veilig gevuld. Schema, import en appverbinding zijn gecontroleerd. De eenmalige dataoverzet hieronder is voor deze database dus al afgerond; voer die niet opnieuw uit. De publieke Netlify-deploy en het instellen van de productievariabelen staan nog open omdat Netlify-accounttoegang ontbreekt.
+**Live:** <https://risky-business-thijmenv.netlify.app>
 
-**Voorkeursroute: Netlify Free + Neon Free PostgreSQL.** De gebruiker heeft geen gratis Vercelruimte meer beschikbaar en gratis is een vereiste. De statische pagina en kaartbestanden staan op Netlify's CDN; de API en afgeschermde spelpagina draaien als Node-function. Accounts, sessies, spelstate en herstelhistorie staan samen in Neon. De code en het echte Netlify-ZIP zijn lokaal getest, inclusief koude function-instanties en sessiebehoud.
+**Gecontroleerd:** 21 november 2026. De website is publiek via HTTPS; het spel en de API vereisen een account en groepslidmaatschap.
 
-Het resultaat na koppeling is een vaste `https://jouw-project.netlify.app`-URL. Er hoeft geen lokale computer aan te blijven en geen Render-service handmatig wakker gemaakt te worden. API/database kunnen een korte koude start hebben. Gratis quota blijven van toepassing: bij het bereiken van planlimieten kan een dienst pauzeren. Dit is geen onbeperkte uptimegarantie. Gebruik expliciet Free, geen proefabonnement met latere betaling of automatische betaalde uitbreiding.
+## Inrichting
 
-## Stappen voor aanmaken en koppelen
+| Onderdeel | Huidige inrichting |
+| --- | --- |
+| Webhosting | Netlify Free, project `risky-business-thijmenv` |
+| Database | Neon Free, project `ancient-mouse-08332993`, Frankfurt, productiebranch |
+| Opslag | Accounts, groepen, spelstate, sessies en laatste twintig vorige spelversies in PostgreSQL |
+| Runtime | Node 24, statische assets op CDN, Express API in een Netlify Function |
+| Productievariabelen | `NODE_ENV=production`, gepoolde `DATABASE_URL` met geverifieerde TLS, stabiele `SESSION_SECRET`; privé ingesteld in Netlify |
+| Publicatie | CLI-deploy; GitHub `main` bevat dezelfde appcode maar is nog niet gekoppeld aan automatische Netlify-builds |
 
-### 1. Zorg dat de nieuwe code op GitHub staat
+Er hoeft geen eigen computer aan te blijven. Log in met het bestaande **ThomJochems**-account en open **Risky Business — Original**. Wachtwoorden zijn behouden. Er zijn geen nieuwe accounts voor de zes historische spelnamen verzonnen.
 
-Netlify moet de versie kunnen ophalen met `netlify.toml`, de nieuwe scripts en `netlify/functions/app.js`. De releasecode is voorbereid voor de GitHub-branch `main`, inclusief Netlify-configuratie en CI. Gebruik die branch bij het koppelen. Het publiceren van een Codex-cloudomgeving maakt op zichzelf geen GitHub-commit en geen publieke gamewebsite.
+De eenmalige import naar Neon is voltooid en met de privébron vergeleken. **Importeer de oude lokale snapshot niet opnieuw naar productie.** Neon is voortaan de actuele bron. Twee bestaande accounts en drie groepen zijn behouden, inclusief het gekozen oorspronkelijke spel met zes spelers, bij de controle 26 troepen en twee logregels.
 
-De echte spelersdata staat genegeerd in `data/` en hoort niet in die commit. Bewaar de volledige privébackup vóór verdere stappen.
+## Gratis blijven
 
-### 2. Maak Neon Free aan
+Het gekoppelde Netlify-account is via de API gecontroleerd als **Free** met **300 credits per maand**. Er is geen upgrade uitgevoerd; automatisch betaald overschrijden is niet ingeschakeld. Deploys en gebruik tellen mee; een productiedeploy kost op het gecontroleerde creditplan 15 credits. Vermijd onnodige deploys en controleer het gebruik in het dashboard.
 
-1. Open <https://console.neon.tech> en maak een gratis account, bijvoorbeeld met GitHub.
-2. Maak een project `risky-business`. Kies een Europese regio die beschikbaar is, liefst dichtbij de Netlify-functionregio. Selecteer Free.
-3. Gebruik de standaard database of maak `risky_business`. Open **Connect** / **Connection details**.
-4. Bewaar de PostgreSQL-verbindingsstring met **connection pooling** voor de app. Gebruik TLS met certificaatvalidatie (`sslmode=verify-full` is de duidelijkste keuze). Bewaar daarnaast de directe, niet-gepoolde verbinding voor eenmalige migratie/import.
-5. Deel die strings niet in chat, screenshots of de repository; ze bevatten het databasewachtwoord.
+Neon gebruikt het bestaande Free-project. Database en functions kunnen een korte koude start hebben. Quota kunnen veranderen en bij overschrijding kan een dienst pauzeren. Deze gratis route biedt een zelfstandig bereikbaar vast webadres binnen de gratis limieten, zonder onbeperkte uptimegarantie. Een gekocht domein is niet nodig.
 
-### 3. Zet de bestaande spelersdata over
+Productie is publiek; niet-productiedeploys staan achter Netlify-aanmelding. Geef previews geen toegang tot de productiedatabase.
 
-Gebruik de gekozen lokale `data/app.json`: die bevat de oorspronkelijke zes-spelersgroep én de twee bewaarde eerdere groepen. Op de cloudmachine met deze privédata maak je een genegeerd privébestand `.env.hosting` met uitsluitend:
+Bronnen: [Netlify pricing](https://www.netlify.com/pricing/), [Netlify Functions](https://docs.netlify.com/functions/overview/), [Neon pricing](https://neon.com/pricing). De concrete Free-bundel is gecontroleerd in het gekoppelde account; controleer quota opnieuw bij wijzigingen.
+
+## Controle en volgende releases
+
+Deze publieke controle schrijft geen data:
+
+```sh
+npm run check:hosting -- https://risky-business-thijmenv.netlify.app
+```
+
+Verwacht op `/api/health` HTTP 200 met `{"ok":true,"storage":"postgres"}`. De controle test ook assets, anonieme toegang en afscherming van privébestanden.
+
+Voor een release vanuit een checkout met Node 24:
+
+```sh
+npm ci
+npm test
+npm run test:e2e
+npm run build:netlify
+```
+
+Gebruik voor volledige databasecontroles een **aparte testdatabase** via `TEST_DATABASE_URL`. Zonder deze variabele wordt de PostgreSQL-test overgeslagen. `npm run check:netlify` vereist dezelfde testdatabase en Python 3 en test het echte ZIP in koude function-processen. Chromium is nodig voor de browsertest.
+
+Met Netlify CLI en veilige accountauthenticatie, vanuit de repository:
+
+```sh
+netlify deploy --site risky-business-thijmenv --prod --dir dist/site --functions dist/functions --no-build
+npm run check:hosting -- https://risky-business-thijmenv.netlify.app
+```
+
+Installeer de CLI zo nodig apart; het is geen app-runtimevereiste. Gebruik het bestaande project. Upload beide directories samen: alleen `dist/site` mist accounts, opslag en API. Behoud dezelfde `SESSION_SECRET`, zodat bestaande sessies geldig blijven.
+
+Voor automatische deploys kan de eigenaar in **dit bestaande Netlify-project** bij **Build & deploy → Continuous deployment → Link repository** GitHub-toegang geven tot `ThijmenV/RiskyBusiness`, branch `main`. De instellingen staan in `netlify.toml`: build `npm run build:netlify`, publicatie `dist/site`, functions `dist/functions`, Node 24. Maak geen tweede site. Tot die koppeling is gemaakt, moet een appwijziging apart via CLI worden gedeployd. Een Codex-omgevingspublicatie deployt de game niet.
+
+## Databasebeheer en backups
+
+Productie voert geen schemawijzigingen tijdens verzoeken uit. Gebruik bij een nieuwe schemaversie een directe Neon-verbinding met geverifieerde TLS, privé gebonden in bijvoorbeeld een genegeerd `.env.hosting`:
 
 ```dotenv
-DATABASE_URL=<de directe Neon-verbindingsstring met TLS>
+DATABASE_URL=<directe Neon-verbindingsstring met sslmode=verify-full>
 ```
 
-Vervang de placeholder alleen in dat privébestand. Op Linux: geef het bestand toegang `0600`. Dit bestand niet committen. Voer vanuit de repository uit:
-
-```sh
-node --env-file=.env.hosting scripts/import-postgres.js data/app.json
-```
-
-De import maakt/migreert schema en sessietabel, maar weigert een gevulde bestemming. Er worden geen bestaande spelers overschreven. IDs, wachtwoordhashes, state, versies en historie worden gecontroleerd. Oude backups zonder history worden ondersteund. Later, bij een nieuwe appversie, gebruik je alleen:
-
-```sh
-node --env-file=.env.hosting scripts/migrate-database.js
-```
-
-Een schema-update is iets anders dan opnieuw spelersdata importeren. De runtime doet in productie geen CREATE/ALTER. Bewaar `.env.hosting` alleen zolang het nodig is en maak vóór schemawijzigingen een privébackup. Laat deze variabele niet globaal op de testomgeving staan; tests en previews krijgen een eigen database.
-
-### 4. Maak Netlify Free aan en verbind GitHub
-
-1. Open <https://app.netlify.com> en maak een gratis account, eventueel met GitHub.
-2. Kies **Add new project** / **Import an existing project**, selecteer GitHub en geef toegang tot deze repository.
-3. Selecteer de branch met de nieuwe code.
-4. `netlify.toml` bevat de instellingen. Controleer:
-   - build: `npm run build:netlify`
-   - publish-directory: `dist/site`
-   - functions-directory: `dist/functions`
-   - Node: `24`
-5. Kies een vrije projectnaam. Netlify geeft daarvoor het vaste `.netlify.app`-adres; er is geen gekocht domein nodig.
-
-Gebruik geen eenvoudige drag-and-drop van alleen `dist/site`: dan ontbreken de Node-function en accounts/API. Via GitHub-import bouwt Netlify de volledige configuratie. Een ontwikkelaar kan ook beide gebouwde directories samen via Netlify CLI uploaden.
-
-### 5. Stel productievariabelen privé in
-
-Open de projectinstellingen bij **Environment variables**. Maak voor de productiecontext deze variabelen, beschikbaar voor Functions:
-
-| Naam | Waarde |
-| --- | --- |
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | De gepoolde Neon-verbindingsstring met TLS |
-| `SESSION_SECRET` | Een nieuwe willekeurige waarde van minstens 32 tekens |
-
-Maak het sessiegeheim lokaal met bijvoorbeeld:
-
-```sh
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-```
-
-Plak de uitkomst rechtstreeks in Netlify; niet in Git of chat. Behoud dezelfde waarde bij volgende deploys om sessies bruikbaar te houden. Deploy-previews krijgen niet automatisch de echte productiedatabase: gebruik daarvoor aparte testcredentials of laat previews ongeconfigureerd.
-
-Na wijzigen van variabelen: start een nieuwe deploy. De productie-app weigert JSON-opslag, ontbrekende schema's en onveilige TLS-instellingen. Een healthcheck met 503 wijst op databasebereikbaarheid of nog uit te voeren migraties.
-
-### 6. Controleer de publieke site
-
-Open eerst het vaste HTTPS-adres en daarna `/api/health`. Verwacht HTTP 200 en:
-
-```json
-{"ok":true,"storage":"postgres"}
-```
-
-Vanuit de repository kan de alleen-lezen publieke controle worden uitgevoerd:
-
-```sh
-npm run check:hosting -- https://jouw-project.netlify.app
-```
-
-Dit controleert dashboard, assets, database-health en afscherming van privébestanden. Het is nog niet uitgevoerd tegen een echte publieke URL.
-
-Log vervolgens in met het bestaande ThomJochems-account. Controleer **Risky Business — Original**: zes spelers, de opgeslagen troepen en het logboek. Op het moment van overzet waren dat 26 troepen en twee logregels. Test opslaan vanuit twee vensters, sluit/heropen de pagina en controleer HISTORY. Publieke bereikbaarheid en de oorspronkelijke login worden pas hier tegen de echte provider gecontroleerd.
-
-### 7. Bewaar ook een backup buiten de providers
-
-Met het privé-envbestand:
+Bewaar dit bestand privé (op Linux modus `0600`), nooit in Git of chat. Maak vóór schemawijzigingen een volledige backup:
 
 ```sh
 node --env-file=.env.hosting scripts/backup.js /private/risky-business-backup.json
+node --env-file=.env.hosting scripts/migrate-database.js
 ```
 
-De volledige backup bevat accounts en wachtwoordhashes: bewaar die privé buiten Netlify/Neon, bijvoorbeeld versleuteld op je eigen computer. Een hersteltest doe je in een aparte lege Neon-database met het importscript. De automatische laatste twintig spelversies helpen bij foutieve wijzigingen, maar vervangen deze onafhankelijke backup niet. Sessies worden niet in beheerbackups opgenomen; na databaseherstel loggen gebruikers opnieuw in.
+Een volledige backup bevat accounts en wachtwoordhashes. Bewaar ook een kopie buiten de providers, bijvoorbeeld versleuteld op je eigen computer. Test herstel in een **lege afzonderlijke database** met `scripts/import-postgres.js`; het importscript weigert een gevulde bestemming. Sessies zijn niet in beheerbackups opgenomen: na databaseherstel loggen gebruikers opnieuw in. Zie [data en herstel](DATA-EN-HERSTEL.md).
 
-## Vergeleken gratis opties
+BACKUP in het spel exporteert één groep. HISTORY bewaart de laatste twintig vorige spelversies en herstelt met versiecontrole. Dit vervangt de onafhankelijke volledige backup niet. API-clients sturen bij opslaan/herstellen de gelezen versie als `X-Game-Version`; ontbrekende versies krijgen 428 en verouderde versies 409. `If-Match` blijft ondersteund voor oudere clients.
 
-| Optie | Geschiktheid voor deze app |
-| --- | --- |
-| Netlify Free + Neon Free | Voorkeur: behoud van Node-code en logins, statische CDN-pagina en vaste URL. Gratis credits/quota vooraf controleren. |
-| Render Free + Neon Free | Bestaande `render.yaml` blijft bruikbaar. Render noemt slaapstand na 15 minuten zonder verzoeken; merkbare koude start. |
-| Cloudflare Workers Free + D1 | Goede geïntegreerde opslagoptie voor een daarop ontworpen app. Officiële Workers-docs noemen 100.000 verzoeken/dag en 10 ms CPU/invocation; de bestaande bcrypt-login en Node-runtime vragen verdere aanpassing. Geen snelle omzetting ten koste van accountcompatibiliteit. |
-| GitHub Pages alleen | Alleen statische bestanden; onvoldoende voor afgeschermde accounts en gedeelde opslag. |
-| Vercel Free | Valt af omdat de gebruiker de gratis mogelijkheden al gebruikt. |
+## Deze cloudwerkmap
 
-Bronnen: [Netlify pricing](https://www.netlify.com/pricing/), [Netlify Functions](https://docs.netlify.com/functions/overview/), [officiële Netlify-bundler](https://github.com/netlify/zip-it-and-ship-it), [Neon pricing](https://neon.com/pricing), [Render Free](https://render.com/docs/free), [Cloudflare Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+De cloudomgeving heeft alleen proxytoegang; native PostgreSQL TCP/DNS werkt hier niet. Beheertaken gebruiken Neons ondersteunde WSS-transport via de bestaande HTTPS-proxy, met TLS-controle. De lokale bridge in `/workspace/.risky-business/neon-transport/` verandert de gewone Netlify-runtime en `pg`-driver niet.
 
-De Netlify-webpagina's zijn hier door het netwerkbeleid geblokkeerd (HTTP 403). De officiële bundler is wel rechtstreeks via npm gelezen, gebruikt en getest. Exacte actuele Netlify-kredieten worden daarom niet als geverifieerd gepresenteerd: controleer het Free-plan bij aanmelden. Neon en Render zijn eerder op 17 november 2026 officieel gecontroleerd; de Workers-prijzen zijn via de officiële Cloudflare GitHub-bron gecontroleerd. Alle quota kunnen veranderen.
+Private bestanden, genegeerd door Git:
 
-## Huidige uitrolstatus (bijgewerkt na Neon-setup)
+- `.env.local`: gepoolde/directe verbinding en stabiele sessiesleutel.
+- `.env.netlify`: de drie runtimevelden; die staan inmiddels ook in Netlify.
+- `data/neon-production-backup-2026-11-21.json`: volledige productiebackup na de publieke functionele controle.
+- `data/recovered-jsonbin.json` en de ruwe snapshot: historisch herstelmateriaal.
 
-Het productie-ZIP is gebouwd en lokaal als losse function-processen tegen PostgreSQL uitgevoerd. Het ZIP bevat geen privédata, historische databases of Git-geschiedenis. Neon is nu daadwerkelijk gekoppeld op het gratis project van de gebruiker: de lege productiebranch is gecontroleerd, de volledige import is eerst in een tijdelijk geïsoleerd schema getest en dat testschema is verwijderd. Daarna is de gewone database gevuld en inhoudelijk vergeleken met de privébron: twee accounts, drie groepen, drie gamestates, zes oorspronkelijke spelers, 26 troepen en twee logregels. De bestaande wachtwoordhashes zijn intact. De app is tegen Neon gecontroleerd op health, dashboard en weigering van anonieme gametoegang.
+De publieke functionele controle gebruikte een tijdelijk willekeurig account en een aparte testgroep. Signup/login, sessies, opslaan/teruglezen, conflictweigering, backup, historieherstel en afgeschermde spelpagina zijn getest. De oorspronkelijke groep is alleen uitgelezen. Testaccount, groep, lidmaatschappen, historie en sessies zijn verwijderd; productie behield twee accounts en drie groepen.
 
-In deze proxy-only cloudomgeving werkt rechtstreeks TCP/DNS niet; de beheertaken zijn uitgevoerd over Neons ondersteunde WebSocket-transport met behoud van TLS-controle. De lokale beheerbridge en dependencies staan privé buiten de repository in `/workspace/.risky-business/neon-transport/`; dit verandert de normale Netlify-appdriver niet.
+Privédata en sleutels staan niet in de huidige Git-tree of het deploypakket. Dat verwijdert historische gegevens niet uit bestaande Git-geschiedenis. De oude JSONBin-sleutel moet apart ingetrokken/geroteerd worden; de app gebruikt JSONBin niet meer.
 
-Private bestanden (niet committen): `.env.local` bevat de gepoolde/directe databaseverbinding en de app-sessiesleutel; `.env.netlify` bevat alleen `NODE_ENV`, `DATABASE_URL` en `SESSION_SECRET` voor de Netlify-runtime. `data/neon-production-backup-2026-11-17.json` is een volledige privébackup van de echte Neon-database. De verbindingen hebben expliciete `sslmode=verify-full`.
+## Andere gratis routes
 
-Netlify-accounttoegang ontbreekt nog. Er is daarom geen externe Netlify-site aangemaakt of gedeployd en geen publiek gameadres bevestigd. Met beveiligde Netlify-accounttoegang kunnen de klaarstaande runtimevariabelen en het geteste pakket rechtstreeks worden ingesteld/uitgerold. Alternatief: importeer het privébestand `.env.netlify` in de Netlify-projectinstellingen en deploy de GitHub-branch. Deel het bestand niet openbaar.
-
-
-## Publicatierelease
-
-Lokale oorspronkelijke JSON/SQLite-bestanden worden niet meer in de nieuwe Git-tree opgenomen; ze blijven hier privé bewaard. CI gebruikt synthetische migratiebronnen en haalt de volledige Git-geschiedenis op voor de geteste herstelmetadata. Het verwijderen uit de actuele Git-tree verwijdert oude gegevens of sleutels niet uit bestaande Git-geschiedenis. De eerder aangetroffen historische JSONBin-key moet apart worden ingetrokken/geroteerd.
-
-Het invullen van Netlify-variabelen importeert niet vanzelf de gekozen spelersdata. De eenmalige privé-import naar Neon uit stap 3 blijft nodig. De gekozen `data/app.json` staat alleen in deze cloudwerkmap en de privébackups, en wordt nooit in de Netlify-build of GitHub opgenomen.
+Vercel viel af omdat de gratis mogelijkheden al gebruikt worden. Render Free met Neon blijft technisch bruikbaar via `render.yaml`, maar heeft een merkbare slaapstand. Cloudflare Workers met D1 vraagt verdere aanpassing van opslag en authenticatie. GitHub Pages alleen ondersteunt de benodigde gedeelde opslag en afgeschermde accounts niet. Netlify met Neon behoudt de bestaande Node-app en accountcompatibiliteit.

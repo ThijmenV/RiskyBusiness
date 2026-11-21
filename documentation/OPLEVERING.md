@@ -1,75 +1,47 @@
-# Opleverstatus — 17 november 2026
+# Opleverstatus — 21 november 2026
+
+**De app is online:** <https://risky-business-thijmenv.netlify.app>. Netlify Free serveert website en API; Neon Free bewaart accounts, sessies, speldata en herstelhistorie. Bestaande accounts en de oorspronkelijke spelversie zijn overgenomen. De code staat op GitHub `main`.
 
 ## Uitgevoerd
 
-- Oorspronkelijke werking, regels en datavormen vastgelegd; plan vóór implementatie geschreven en na historische vondst aangevuld.
-- Eén spelpagina met losse CSS/JS en gedeelde geteste scoreregels. Historische continentlijsten bewust behouden. Kaart en libraries lokaal geserveerd; geen CDN-scripts of externe fonts meer nodig.
-- `npm start` platformonafhankelijk, Node 24 vastgelegd, lockfile hersteld. Meegecommitte dependencies uit Git-tracking verwijderd; voortaan `npm ci`. CI met PostgreSQL en Chromium toegevoegd.
-- Atomische JSON-writes, weigeren van corrupte data en ongeldige relaties. PostgreSQL-groepaanmaak in een transactie, certificaatverificatie niet langer uitgezet, persistente sessies en veilige productievereisten.
-- HTTP-validatie, rate limiting op auth, sessievernieuwing bij login, veilige cookies achter de hostingproxy, cross-origin writes geweigerd, gebruikersnamen/lognamen ge-escaped en centrale API-fouten.
-- Optimistische stateversies, seriële saves, gecontroleerd verversen en zichtbare conflictsituaties met lokale export. Geen stille overschrijving of automatische volledige-state-merge.
-- Reset gerepareerd; vooraf downloaden van een groepsbackup, restore met versietoets. Mobiele tiebreakerfunctie hersteld. Desktop en mobiele weergave in Chromium gecontroleerd.
-- Twee echte repositorydatabases verliesvrij naar `data/app.json` gemigreerd: twee accounts, twee groepen en vijf logregels. Herhaalrun verandert niets. Bronbestanden bytegelijk gebleven. Beide wachtwoordformaten ondersteund.
-- Historische zes spelers in eerste commit gevonden: Thom, Thijmen, Thijs, Aidan, Jorik, Chris. Read-only JSONBin-herstel en import in een aparte groep met een zelfstandig spelersrooster toegevoegd. Geen nepaccounts of verzonnen wachtwoorden.
-- Render-configuratie en handleidingen voor hosting, private backups, gecontroleerde PostgreSQL-import en herstel geschreven.
+- [Oorspronkelijke werking](HUIDIGE-WERKING.md) en [plan van aanpak](PLAN-VAN-AANPAK.md) vastgelegd vóór de verbeteringen.
+- Eén frontend met losse CSS/JS en gedeelde, geteste scoreregels. Mechanics en historische continentlijsten behouden; kaart en libraries lokaal geserveerd.
+- Node 24, reproduceerbare installatie, CI met PostgreSQL/Chromium, Netlify-configuratie en afgeschermd deploypakket toegevoegd.
+- Atomische lokale JSON-opslag en transactionele PostgreSQL-opslag. Productie vereist PostgreSQL, geverifieerde TLS, expliciete schemamigraties en een stabiele sessiesleutel. Persistente sessies, begrensde verbindingspool en echte database-healthcheck.
+- Accounts/groepsrechten, invoervalidatie, auth-rate-limits, veilige cookies en weigering van cross-origin writes. Netlify-client-IP-verwerking gecorrigeerd na een echte publieke aanmeldtest.
+- Opslaan met verplichte versiecontrole via `X-Game-Version`, getest via de publieke hostingroute. Conflicten worden geweigerd; lokale export en bewust herladen blijven beschikbaar.
+- Twintig vorige spelversies per groep, HISTORY-herstel met versiecontrole, groepsbackup/import en volledige beheerbackups. Reset downloadt eerst een backup; mobiele tiebreakerfunctie hersteld.
+- Beide repositorydatabases zonder verlies samengevoegd en beide wachtwoordformaten behouden. Zes historische spelers gevonden in de eerste commit, JSONBin-state teruggevonden en op uitdrukkelijke keuze van de gebruiker definitief gebruikt.
+- Neon gekoppeld; import eerst in een geïsoleerd testschema gecontroleerd, daarna naar de lege productiebranch uitgevoerd. Netlify-site aangemaakt, runtimevariabelen privé ingesteld en productie publiek via HTTPS gedeployd. Free-plan gecontroleerd, geen betaalde upgrade uitgevoerd.
 
-## Uitgevoerde controles
+## Behouden data
 
-| Controle | Resultaat |
+**Risky Business — Original**, onder het bestaande **ThomJochems**-account, bevat Thom, Thijmen, Thijs, Aidan, Jorik en Chris. Bij de publieke controle: **26 troepen, 12 gecontroleerde landen en twee logregels**. Twee eerdere groepen en beide bestaande accounts zijn behouden; wachtwoordhashes zijn onveranderd. Geen nepaccounts, ontbrekende logregels of herberekende handmatige scores toegevoegd.
+
+Historische landsleutels zijn gecontroleerd genormaliseerd: voorloopnullen verwijderd, de identieke dubbele Australische score eenmaal bewaard en de nieuwste wijzigingstijd behouden. Twee lege ongeldige sleutels zijn alleen uit de bruikbare state verwijderd. Conflicterende inhoud wordt geweigerd. Ruwe data en normalisatierapportage blijven privé beschikbaar.
+
+Neon is de actuele productiebron; lokale bestanden zijn herstelsnapshots. Importeer die niet opnieuw over een lopend spel. Volledige privébackup na de livecontrole: `data/neon-production-backup-2026-11-21.json`. Historische bronnen, ruwe JSONBin-response en eerdere backups blijven in het genegeerde `data/`. Een gewone Git-clone bevat de privédata niet.
+
+## Verificatie
+
+| Controle | Resultaat op 21 november 2026 |
 | --- | --- |
-| Schone `npm ci` | Geslaagd |
-| `npm test` met echte lokale PostgreSQL | **13 geslaagd, 0 mislukt, 0 overgeslagen** |
-| `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e` | **1 brede browsertest geslaagd** |
-| Browsertest | Signup, groep, kaart, troepen, log toevoegen/bewerken/verwijderen, reload, twee-clientconflict, mobiel, zes-spelersrooster, kleurwijziging, resetdownload en restore |
-| PostgreSQL-integratietest | Import van beide bronnen, inhoud/count-verificatie, dubbele import geweigerd, race met één winnaar, rollback van geforceerd mislukte groepaanmaak, sessie bruikbaar vanuit nieuwe appinstantie, backup en restore naar tweede schema |
-| Migratie | Iedere payload terugvergeleken via inverse ID-mapping; originele hashes onveranderd; herhaling veilig |
-| `npm audit --omit=dev --audit-level=moderate` | **0 bekende kwetsbaarheden** na updates |
-| `git diff --check` | Geslaagd |
-| `npm start` en lokale HTTP-readiness | Geslaagd met nieuwe app op poort 3000, JSON-opslag |
+| `npm test` met echte lokale PostgreSQL | 17 geslaagd, 0 mislukt, 0 overgeslagen |
+| Chromium E2E | 1 brede test geslaagd: desktop/mobiel, kaart, troepen, logbewerkingen, reload, conflicten, zes-spelersrooster, reset, backup en HISTORY |
+| Netlify-build en echte ZIP-runtime | Geslaagd: geen privébestanden, koude function-processen, HTTPS-cookies, PostgreSQL-sessies en afgeschermde spelpagina |
+| Publieke read-only hostingcheck | Geslaagd: HTTPS-dashboard, database, assets, anonieme toegang geweigerd en privébestanden niet gepubliceerd |
+| Publieke functionele API-controle | Geslaagd: signup/login, sessie, groepaanmaak, opslaan/teruglezen, stale-save 409, backup, historieherstel, gamepagina en logout |
+| Oorspronkelijke groep via publieke API | Zes spelers, 26 troepen en twee logregels bevestigd; alleen uitgelezen |
+| Testdata opruimen | Tijdelijk account, groep, lidmaatschappen, historie en sessies verwijderd; productie houdt 2 accounts en 3 groepen |
 
-PostgreSQL is hier lokaal getest met via npm verkregen embedded binaries (PostgreSQL 18); CI is ingericht met PostgreSQL 17 maar is nog niet op GitHub uitgevoerd. Er is geen beheerde desktoptool beschikbaar; de browserchecks zijn met echte headless Chromium uitgevoerd. Tests gebruiken eigen tijdelijke data en geen echte gebruikerswachtwoorden.
+Oorspronkelijke gebruikerswachtwoorden zijn niet gebruikt of gewijzigd. Publieke authenticatie is getest met een tijdelijk account. De brede UI-test draaide in headless Chromium tegen een geïsoleerde lokale testserver; de livecontrole testte de echte publieke API/HTML. CI is ingericht; deze tabel beschrijft de hier uitgevoerde checks en claimt geen afzonderlijk gecontroleerde GitHub Actions-run.
 
-## Oorspronkelijke data hersteld en definitief gekozen
+## Beheer en resterende aandachtspunten
 
-Na publicatie van de cloudomgeving is JSONBin read-only met HTTP 200 uitgelezen. De gebruiker heeft het overzicht beoordeeld en de oorspronkelijke zes-spelersversie expliciet gekozen. Die staat nu in **Risky Business — Original** onder het bestaande **ThomJochems**-account. Samen: **26 troepen, 12 gecontroleerde landen en twee logregels**. De twee eerdere groepen, oorspronkelijke bronbestanden en accountgegevens zijn behouden. Er zijn geen ontbrekende logregels verzonnen of handmatige scores herberekend.
+De site is via Netlify CLI uitgerold. **GitHub-pushes deployen nog niet automatisch.** De eigenaar kan de repository aan hetzelfde project koppelen; de [hostinghandleiding](HOSTING.md) beschrijft dat en de huidige CLI-route. De live appcode komt overeen met commit `48f9178`.
 
-De eerste validatie weigerde historische landsleutels. Een geteste normalisatiestap verwijdert voorloopnullen, bewaart de identieke dubbele Australische score eenmaal, gebruikt de nieuwste wijzigingstijd en verwijdert twee lege ongeldige landsleutels uitsluitend uit de bruikbare state. Conflicterende scores of ongeldige sleutels met inhoud worden geweigerd. De volledige ruwe HTTP-response en originele state blijven privé bewaard naast de normalisatierapportage.
+Het gecontroleerde Netlify Free-plan heeft 300 credits per maand; deploys en gebruik tellen mee. Neon en functions kunnen koud starten en bij gratis limieten kan de dienst pauzeren. Geen betaald abonnement of automatische betaalde uitbreiding geactiveerd.
 
-`data/app.json` bevat nu twee accounts, drie groepen, drie lidmaatschappen en drie gamestates. Een afzonderlijke lokale PostgreSQL-import hiervan is inhoudelijk vergeleken met alle lokale payloads en versies. Op een wegwerpkopie van de echte data zijn API laden/opslaan, groepsbackup en storageherstart geverifieerd. De actieve dataset is daarbij niet veranderd. Een tweede herstelimport dupliceert niets.
+Bewaar daarnaast een volledige backup buiten de cloudomgeving/providers. Trek de oude JSONBin-key apart in; die kan nog in historische Git-commits staan. Verbindingsstrings en nieuwe sessiesleutels blijven privé en buiten Git.
 
-Private bestanden (genegeerd door Git en niet via HTTP geserveerd):
-
-- `data/recovered-jsonbin.json`: genormaliseerde plus originele game en herkomst/rapportage.
-- `data/recovered-jsonbin.json.raw.json`: bytegetrouwe response, zonder toegevoegde sleutel.
-- `data/DATASET-VERGELIJKING.md`: spelersoverzicht, landscores en logboek.
-- `data/selected-full-backup-2026-11-17.json`: volledige gekozen lokale database inclusief bewaarde eerdere groepen en accounts; bevat wachtwoordhashes, dus privé bewaren.
-
-De officiële Render- en Neon-pagina's zijn inmiddels bereikbaar en gecontroleerd. De hostinghandleiding vermeldt de gevonden gratis quota als momentopname. De omgevingsinstructies worden aangepast voor het behouden/importeren van de gekozen privé-snapshot; deze verandering publiceert de omgeving niet automatisch.
-
-## Nog open: externe hosting
-
-Er is geen productie-deploy uitgevoerd, geen provideraccount gekoppeld en geen code gepusht. Render/Neon zijn een uitgewerkte route, geen gegarandeerde blijvend gratis dienst. Actuele quota, externe TLS, slaapstand, herstart en oorspronkelijke login moeten bij publicatie worden gecontroleerd. De historische client-API-key na herstel intrekken/roteren.
-
-Lokale JSON ondersteunt één serverproces en heeft alleen in-memory sessies; productie vereist PostgreSQL. Conflictoplossing is bewust expliciet export/herladen. Geografische correcties in de historische continentregels en een model met alleen eigen scorebewerkingen zijn afzonderlijke spelregelkeuzes.
-
-
-## Vervolg: opslag en gratis hosting buiten Vercel
-
-De gebruiker vereist gratis hosting en gebruikt de gratis Vercelruimte al. Daarom is **Netlify Free + Neon Free PostgreSQL** uitgewerkt en bouwbaar gemaakt. HOSTING.md bevat concrete stappen voor accounts, GitHub-koppeling, privé-import van de gekozen data, veilige variabelen en publieke controles. Er is nog geen publiek adres aangemaakt: provideraccounts en productiecredentials zijn niet beschikbaar.
-
-Nieuwe opslagfuncties: twintig automatische vorige spelversies per groep, atomair opgeslagen met versiecontrole; HISTORY-herstel maakt een nieuwe versie. Zowel JSON als PostgreSQL en volledige backups ondersteunen deze historie. Schema's zijn versiebeheerd; productie verifieert ze zonder DDL tijdens verzoeken. De PG-pool is begrensd tot twee verbindingen per instantie met timeouts. Health voert werkelijk een databasequery uit en geeft 503 bij uitval. Productie weigert onveilige TLS-configuratie en lokale JSON.
-
-Netlify: `dist/site` bevat alleen statische publieke bestanden en `dist/functions/app.zip` de Node-function plus afgeschermde gamepagina. Het echte ZIP is gecontroleerd op afwezigheid van privédata en uitgevoerd in aparte koude function-processen met PostgreSQL: health, HTTPS-cookies, sessiebehoud en geauthenticeerde game-HTML werken. Publieke `check:hosting` is beschikbaar maar nog niet tegen een externe deployment uitgevoerd.
-
-Validatie in deze ronde: 15 tests inclusief PostgreSQL geslaagd, de uitgebreide Chromium-test inclusief HISTORY geslaagd, deploy-build en ZIP-runtimecheck geslaagd, productie-audit 0 bekende kwetsbaarheden. De gekozen dataset blijft zes spelers, 26 troepen en twee logregels. Een nieuwe volledige privébackup staat in `data/selected-full-backup-hosting-2026-11-17.json`.
-
-Netlify's website is hier door het netwerkbeleid geblokkeerd, dus actuele exacte gratis credits zijn niet bevestigd. De officiële Netlify-bundler is via npm gelezen en getest. Cloudflare Workers Free CPU-limieten zijn via de officiële GitHub-docs gecontroleerd; overstappen zou extra auth/runtimewerk vragen. Gratis diensten houden quota en kunnen bij overschrijding pauzeren; geen onbeperkte beschikbaarheid claimen.
-
-
-## Neon productie gekoppeld en geïmporteerd
-
-Neon CLI heeft het bestaande gratis project `ancient-mouse-08332993` gekoppeld. De lege database is via het ondersteunde WSS-transport over de cloudproxy bereikt, met TLS-certificaatcontrole. Migratie/import is eerst in een tijdelijk geïsoleerd schema geverifieerd (inclusief sessies tussen appinstanties), waarna dat schema is verwijderd. Vervolgens zijn schema en alle gekozen gegevens in de normale productiebranch gezet: 2 accounts, 3 groepen, 3 lidmaatschappen, 3 gamestates, 0 historische versies bij de initiële import. Alle payloads en wachtwoordhashes zijn inhoudelijk vergeleken met de bron. De oorspronkelijke groep heeft nog steeds 6 spelers, 26 troepen en 2 logregels.
-
-De app is daarna tegen Neon geverifieerd: health `storage: postgres`, dashboard bereikbaar, anonieme gametoegang geweigerd en privébestanden afgeschermd. Hiervoor zijn geen testaccounts of spelwijzigingen in de gewone productiegegevens achtergelaten. Een volledige Neon-backup staat privé in `data/neon-production-backup-2026-11-17.json`.
-
-Verbindingsstrings en stabiele sessiesleutel staan uitsluitend in genegeerde bestanden met modus 0600. `.env.netlify` bevat precies de drie runtimevelden voor de volgende stap. Netlify-accounttoegang is nog niet beschikbaar, dus er is nog geen publieke website of ingestelde Netlify-runtime. De volgende stap is beveiligde Netlify-toegang of handmatige import van die runtimevariabelen in het reeds gekozen Netlify-project.
+Lokale JSON is geschikt voor één ontwikkelproces; productie gebruikt PostgreSQL. Wijzigingen in historische continentregels of het beperken van leden tot alleen eigen scorebewerkingen blijven afzonderlijke spelregelkeuzes.
